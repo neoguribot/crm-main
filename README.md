@@ -5,6 +5,15 @@
 클라이언트 원본 요구사항 문서를 기준으로 구현했다(요구사항이 확정되기 전 만들어진
 초기 프로토타입에서 출발했으며, 코드와 요구사항이 다를 경우 항상 요구사항을 따른다).
 
+| 항목 | 값 |
+| --- | --- |
+| 저장소 | <https://github.com/neoguribot/crm-main> (private) |
+| 앱 배포 (Vercel) | _아직 미배포_ — 배포 후 `https://<프로젝트>.vercel.app` 로 이 줄을 교체 |
+| 소개 페이지 (GitHub Pages) | _아직 미배포_ — 저장소 Settings → Pages 활성화 후 `https://neoguribot.github.io/crm-main/` |
+
+> 앱(Next.js)은 **Vercel** 에, `site/` 아래 정적 소개 페이지는 **GitHub Pages** 에 배포한다.
+> 소개 페이지는 앱과 무관하며 배포하지 않아도 앱 사용에 지장 없다.
+
 ## 기술 스택
 
 | 항목 | 내용 |
@@ -20,21 +29,34 @@
 | 패키지 매니저 | npm |
 | Node.js | 20.9 이상 |
 
-## 설치 · 환경변수
+## 빠른 시작 (로컬)
 
-```bash
-npm install
-cp .env.example .env.local   # 값 채우기
-```
+처음부터 끝까지 순서대로:
 
-`.env.local` 은 Git 에 커밋되지 않는다(`.gitignore`). 필요한 변수:
+1. **클론 · 의존성**
+   ```bash
+   git clone https://github.com/neoguribot/crm-main.git
+   cd crm-main
+   npm install
+   ```
+2. **Supabase 프로젝트 생성** — <https://supabase.com> 에서 새 프로젝트 하나.
+3. **환경변수** — `cp .env.example .env.local` 후 아래 두 값을 채운다
+   (Supabase 대시보드 → Project Settings → API):
 
-| 변수명 | 설명 |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL (Project Settings > API) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 공개(anon/publishable) 키 — 브라우저 노출 OK, RLS 로 통제 |
+   | 변수명 | 설명 |
+   | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | 프로젝트 URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 공개(anon/publishable) 키 — 브라우저 노출 OK, RLS 로 통제 |
 
-`service_role` 키는 사용하지 않는다.
+   `.env.local` 은 Git 에 커밋되지 않는다(`.gitignore`). `service_role` 키는 쓰지 않는다.
+4. **스키마 적용** — Supabase 대시보드 → SQL Editor 에 `supabase/combined_migrations.sql`
+   전체를 붙여넣고 Run (또는 `supabase/migrations/0001`~`0025` 를 순서대로).
+   상세는 [`supabase/README.md`](./supabase/README.md).
+5. **직원 계정 생성** — Supabase 대시보드 → Authentication → Users → **Add user**,
+   이메일·비밀번호 입력, **Auto Confirm User** 체크. (회원가입 UI 는 없다 — 아래 "인증" 참고)
+6. **(선택) 시연용 샘플 데이터** — [`docs/DEMO_DATA.md`](./docs/DEMO_DATA.md) 참고,
+   `supabase/seed/demo_data.sql` 에 5번에서 만든 사용자 UUID 를 넣고 SQL Editor 에서 실행.
+7. **개발 서버** — `npm run dev` → <http://localhost:3000> → 5번 계정으로 로그인.
 
 ## 실행 · 검사
 
@@ -176,5 +198,43 @@ proxy.ts               세션 갱신 + 보호 경로 통제
 
 ## 배포
 
-Vercel 배포 준비(환경변수 이름, Supabase Redirect URL, 스모크 테스트)는
+### 앱 — Vercel
+
+1. **Import** — <https://vercel.com/new> 에서 `neoguribot/crm-main` 저장소를 Import.
+   Framework 는 Next.js 로 자동 감지된다.
+2. **환경변수** — Project → Settings → Environment Variables 에 아래 두 개를
+   Production / Preview / Development 모두에 등록:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+   (`service_role` 키는 등록하지 않는다. 로컬은 `vercel env pull .env.local` 로도 받을 수 있다.)
+3. **첫 배포** → 배포 URL 확인 (`https://<프로젝트>.vercel.app`).
+4. **Supabase Auth 갱신** — 대시보드 → Authentication → URL Configuration
+   - Site URL: `https://<프로젝트>.vercel.app`
+   - Redirect URLs: `http://localhost:3000/**`, `https://<프로젝트>.vercel.app/**`,
+     `https://<프로젝트>-*.vercel.app/**` (Preview 배포용 와일드카드)
+   - Sign In / Providers 에서 **"Allow new users to sign up" 끄기** (직원만 사용)
+5. **배포 후** — 배포 URL 로 접속해 로그인 → `docs/DEPLOY.md §6` 스모크 테스트.
+
+환경변수 이름·환경별 차이·렌더링 확인·스모크 테스트 전체 표는
 [`docs/DEPLOY.md`](./docs/DEPLOY.md).
+
+CLI 로 하려면:
+
+```bash
+npm i -g vercel
+vercel link                       # 프로젝트 연결
+vercel env add NEXT_PUBLIC_SUPABASE_URL
+vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
+vercel --prod                     # 프로덕션 배포
+```
+
+### 소개 페이지 — GitHub Pages (선택)
+
+`site/index.html` (정적 소개 페이지, 앱 아님) 을 `.github/workflows/pages.yml` 가
+`main` 에 `site/**` 변경이 푸시될 때 자동 배포한다.
+
+- **한 번만 켜기**: 저장소 → Settings → Pages → Source 를 **"GitHub Actions"** 로.
+  (기본 토큰으로는 워크플로가 Pages 를 스스로 켜지 못해 첫 실행이 실패한다.)
+- 켠 뒤 워크플로를 재실행하면 `https://neoguribot.github.io/crm-main/` 에 게시된다.
+- 소개 페이지가 필요 없으면 `.github/workflows/pages.yml` 을 삭제해도 된다.
