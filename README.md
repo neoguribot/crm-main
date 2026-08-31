@@ -8,8 +8,8 @@
 | 항목 | 값 |
 | --- | --- |
 | 저장소 | <https://github.com/neoguribot/crm-main> (private) |
-| 앱 배포 (Vercel) | _아직 미배포_ — 배포 후 `https://<프로젝트>.vercel.app` 로 이 줄을 교체 |
-| 소개 페이지 (GitHub Pages) | _아직 미배포_ — 저장소 Settings → Pages 활성화 후 `https://neoguribot.github.io/crm-main/` |
+| 앱 배포 (Vercel) | <https://crm-main-eight.vercel.app> |
+| 소개 페이지 (GitHub Pages) | _미배포_ — 저장소 Settings → Pages 활성화 후 `https://neoguribot.github.io/crm-main/` |
 
 > 앱(Next.js)은 **Vercel** 에, `site/` 아래 정적 소개 페이지는 **GitHub Pages** 에 배포한다.
 > 소개 페이지는 앱과 무관하며 배포하지 않아도 앱 사용에 지장 없다.
@@ -200,34 +200,39 @@ proxy.ts               세션 갱신 + 보호 경로 통제
 
 ### 앱 — Vercel
 
-1. **Import** — <https://vercel.com/new> 에서 `neoguribot/crm-main` 저장소를 Import.
-   Framework 는 Next.js 로 자동 감지된다.
-2. **환경변수** — Project → Settings → Environment Variables 에 아래 두 개를
-   Production / Preview / Development 모두에 등록:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+운영 URL: <https://crm-main-eight.vercel.app>
+(Vercel 프로젝트 `blackskysoul5165-5148s-projects/crm-main`, GitHub 저장소 연결됨 →
+`main` 에 푸시하면 자동 프로덕션 배포)
 
-   (`service_role` 키는 등록하지 않는다. 로컬은 `vercel env pull .env.local` 로도 받을 수 있다.)
-3. **첫 배포** → 배포 URL 확인 (`https://<프로젝트>.vercel.app`).
-4. **Supabase Auth 갱신** — 대시보드 → Authentication → URL Configuration
-   - Site URL: `https://<프로젝트>.vercel.app`
-   - Redirect URLs: `http://localhost:3000/**`, `https://<프로젝트>.vercel.app/**`,
-     `https://<프로젝트>-*.vercel.app/**` (Preview 배포용 와일드카드)
-   - Sign In / Providers 에서 **"Allow new users to sign up" 끄기** (직원만 사용)
-5. **배포 후** — 배포 URL 로 접속해 로그인 → `docs/DEPLOY.md §6` 스모크 테스트.
+이미 설정된 것:
+- 환경변수 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Production/Preview/Development)
+- `service_role` 키는 등록하지 않음
 
-환경변수 이름·환경별 차이·렌더링 확인·스모크 테스트 전체 표는
-[`docs/DEPLOY.md`](./docs/DEPLOY.md).
-
-CLI 로 하려면:
+배포를 처음부터 다시 하거나 다른 계정/프로젝트로 옮길 때:
 
 ```bash
 npm i -g vercel
-vercel link                       # 프로젝트 연결
-vercel env add NEXT_PUBLIC_SUPABASE_URL
-vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
-vercel --prod                     # 프로덕션 배포
+vercel link                                       # 프로젝트 연결(없으면 생성)
+printf '%s' "<URL>" | vercel env add NEXT_PUBLIC_SUPABASE_URL production
+printf '%s' "<KEY>" | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
+# preview / development 도 동일하게
+vercel --prod --yes                               # 프로덕션 배포
 ```
+
+또는 Vercel 대시보드 <https://vercel.com/new> 에서 저장소 Import (Framework: Next.js 자동 감지).
+
+**Supabase Auth (선택, 나중에 필요할 때)** — 지금은 이메일·비밀번호 로그인만 쓰므로
+리다이렉트가 없어 별도 설정 없이 동작한다. 매직링크·비밀번호 재설정을 붙이면
+대시보드 → Authentication → URL Configuration 에서:
+- Site URL: `https://crm-main-eight.vercel.app`
+- Redirect URLs: `http://localhost:3000/**`, `https://crm-main-eight.vercel.app/**`,
+  `https://crm-main-*.vercel.app/**` (Preview 배포용)
+
+**공개 회원가입 끄기** — Authentication → Sign In / Providers 에서
+"Allow new users to sign up" 를 끈다(직원만 사용).
+
+환경변수 이름·환경별 차이·렌더링 확인·스모크 테스트 전체 표는
+[`docs/DEPLOY.md`](./docs/DEPLOY.md).
 
 ### 소개 페이지 — GitHub Pages (선택)
 
