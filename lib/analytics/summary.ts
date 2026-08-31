@@ -41,6 +41,13 @@ export type TopCustomer = {
   tradeCount: number;
 };
 
+export type TopReferrer = {
+  id: string;
+  name: string;
+  /** 이 고객을 추천인으로 지정한 다른 고객 수. */
+  referralCount: number;
+};
+
 export type CustomerAnalytics = {
   customerCount: number;
   genderCounts: Record<Gender, number>;
@@ -56,6 +63,8 @@ export type CustomerAnalytics = {
   itemTypeCounts: Record<ItemType, number>;
   topCustomers: TopCustomer[];
   topCustomersByCount: TopCustomer[];
+  /** 추천인으로 지정된 횟수가 많은 순 상위 고객. */
+  topReferrers: TopReferrer[];
 };
 
 function toCount(value: unknown): number {
@@ -85,6 +94,24 @@ function normalizeTopCustomers(raw: unknown): TopCustomer[] {
           name: t.name,
           totalAmount: String(t.total_amount ?? "0"),
           tradeCount: toCount(t.trade_count),
+        }))
+    : [];
+}
+
+function normalizeTopReferrers(raw: unknown): TopReferrer[] {
+  return Array.isArray(raw)
+    ? raw
+        .filter(
+          (v): v is { id: string; name: string; referral_count: unknown } =>
+            typeof v === "object" &&
+            v !== null &&
+            typeof (v as Record<string, unknown>).id === "string" &&
+            typeof (v as Record<string, unknown>).name === "string",
+        )
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          referralCount: toCount(t.referral_count),
         }))
     : [];
 }
@@ -163,5 +190,6 @@ export function normalizeCustomerAnalytics(raw: unknown): CustomerAnalytics {
     itemTypeCounts,
     topCustomers: normalizeTopCustomers(r.top_customers),
     topCustomersByCount: normalizeTopCustomers(r.top_customers_by_count),
+    topReferrers: normalizeTopReferrers(r.top_referrers),
   };
 }

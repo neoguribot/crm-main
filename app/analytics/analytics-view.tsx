@@ -101,9 +101,11 @@ const DIST_OPTIONS: { key: DistKey; label: string }[] = [
   { key: "item", label: "품목" },
 ];
 
+type TopBy = "amount" | "count" | "referral";
+
 export function AnalyticsView({ data }: { data: CustomerAnalytics }) {
   const [dist, setDist] = useState<DistKey>("gender");
-  const [topBy, setTopBy] = useState<"amount" | "count">("amount");
+  const [topBy, setTopBy] = useState<TopBy>("amount");
 
   const distRows: { label: string; count: number }[] =
     dist === "gender"
@@ -143,7 +145,32 @@ export function AnalyticsView({ data }: { data: CustomerAnalytics }) {
         ? "고객 수가 아니라 누적 거래 건수 기준입니다."
         : null;
 
-  const topRows = topBy === "amount" ? data.topCustomers : data.topCustomersByCount;
+  const topList: { id: string; name: string; primary: string; secondary: string }[] =
+    topBy === "amount"
+      ? data.topCustomers.map((c) => ({
+          id: c.id,
+          name: c.name,
+          primary: formatWon(c.totalAmount),
+          secondary: `${c.tradeCount.toLocaleString("ko-KR")}건`,
+        }))
+      : topBy === "count"
+        ? data.topCustomersByCount.map((c) => ({
+            id: c.id,
+            name: c.name,
+            primary: `${c.tradeCount.toLocaleString("ko-KR")}건`,
+            secondary: formatWon(c.totalAmount),
+          }))
+        : data.topReferrers.map((c) => ({
+            id: c.id,
+            name: c.name,
+            primary: `${c.referralCount.toLocaleString("ko-KR")}명 추천`,
+            secondary: "",
+          }));
+
+  const topEmptyMessage =
+    topBy === "referral"
+      ? "추천인으로 지정된 고객이 없습니다."
+      : "거래 이력이 있는 고객이 없습니다.";
 
   return (
     <div className="flex flex-col gap-6">
@@ -195,19 +222,20 @@ export function AnalyticsView({ data }: { data: CustomerAnalytics }) {
             options={[
               { key: "amount", label: "누적 거래액순" },
               { key: "count", label: "누적 거래 건수순" },
+              { key: "referral", label: "최다 추천순" },
             ]}
             value={topBy}
             onChange={setTopBy}
           />
         </CardHeader>
         <CardContent>
-          {topRows.length === 0 ? (
+          {topList.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              거래 이력이 있는 고객이 없습니다.
+              {topEmptyMessage}
             </p>
           ) : (
             <ol className="flex flex-col divide-y text-sm">
-              {topRows.map((c, i) => (
+              {topList.map((c, i) => (
                 <li
                   key={c.id}
                   className="flex items-center justify-between gap-3 py-2"
@@ -222,21 +250,22 @@ export function AnalyticsView({ data }: { data: CustomerAnalytics }) {
                     >
                       {c.name}
                     </Link>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {topBy === "amount"
-                        ? `${c.tradeCount.toLocaleString("ko-KR")}건`
-                        : formatWon(c.totalAmount)}
-                    </span>
+                    {c.secondary ? (
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {c.secondary}
+                      </span>
+                    ) : null}
                   </div>
-                  <span className="font-medium tabular-nums">
-                    {topBy === "amount"
-                      ? formatWon(c.totalAmount)
-                      : `${c.tradeCount.toLocaleString("ko-KR")}건`}
-                  </span>
+                  <span className="font-medium tabular-nums">{c.primary}</span>
                 </li>
               ))}
             </ol>
           )}
+          {topBy === "referral" ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              이 고객을 추천인으로 등록한 다른 고객 수 기준입니다.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

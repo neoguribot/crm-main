@@ -19,6 +19,10 @@ describe("normalizeCustomerAnalytics", () => {
       top_customers_by_count: [
         { id: "c1", name: "홍길동", total_amount: "5000000", trade_count: 3 },
       ],
+      top_referrers: [
+        { id: "c1", name: "홍길동", referral_count: 4 },
+        { id: "bad" },
+      ],
     });
     expect(a.customerCount).toBe(18);
     expect(a.genderCounts.MALE).toBe(8);
@@ -38,6 +42,8 @@ describe("normalizeCustomerAnalytics", () => {
     expect(a.itemTypeCounts.GOLD_BAR).toBe(4);
     expect(a.itemTypeCounts.OTHER).toBe(2);
     expect(a.topCustomersByCount).toHaveLength(1);
+    expect(a.topReferrers).toHaveLength(1);
+    expect(a.topReferrers[0].referralCount).toBe(4);
   });
 
   it("빈/잘못된 응답은 0과 빈 배열로 안전하게 채운다", () => {
@@ -47,6 +53,7 @@ describe("normalizeCustomerAnalytics", () => {
     expect(a.frequencyCounts.단골).toBe(0);
     expect(a.revenueCounts.VIP).toBe(0);
     expect(a.topCustomers).toEqual([]);
+    expect(a.topReferrers).toEqual([]);
 
     expect(normalizeCustomerAnalytics(null).customerCount).toBe(0);
     expect(normalizeCustomerAnalytics(undefined).customerCount).toBe(0);
