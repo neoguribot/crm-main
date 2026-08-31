@@ -16,9 +16,10 @@ const LEVELS = [
   { key: "lg", label: "크게", scale: 1.3 },
 ] as const;
 
-const DEFAULT_SCALE = LEVELS[0].scale;
-
 type Level = (typeof LEVELS)[number];
+
+/** 저장된 값이 없을 때의 기본값 = "중간". */
+const DEFAULT_SCALE = LEVELS[1].scale;
 
 /** 저장된 배율과 가장 가까운 단계를 고른다(과거 임의 배율 값도 흡수). */
 function scaleToLevel(scale: number): Level {
@@ -41,8 +42,8 @@ function readStoredScale(): number {
 }
 
 function applyScale(scale: number): void {
-  document.documentElement.style.fontSize =
-    scale === DEFAULT_SCALE ? "" : `${Math.round(scale * 100)}%`;
+  // 기본값도 100%가 아니므로 항상 명시적으로 지정한다.
+  document.documentElement.style.fontSize = `${Math.round(scale * 100)}%`;
 }
 
 function subscribe(onChange: () => void): () => void {
@@ -59,8 +60,8 @@ function subscribe(onChange: () => void): () => void {
 }
 
 /**
- * 글자 크기(작게/중간/크게) 선택. 값은 localStorage 에 저장되어 새로고침·다른
- * 페이지·다른 탭에서도 유지된다(초기 적용은 app/layout.tsx 의 무플래시 스크립트).
+ * 글자 크기(작게/중간/크게) 선택. 기본값은 "중간". 값은 localStorage 에 저장되어
+ * 새로고침·다른 페이지·다른 탭에서도 유지된다(초기 적용은 app/layout.tsx 의 무플래시 스크립트).
  */
 export function FontSizeControl() {
   const scale = useSyncExternalStore(subscribe, readStoredScale, () => DEFAULT_SCALE);
