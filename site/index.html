@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>금은방 고객관리 CRM</title>
+<meta name="description" content="금은방의 고객·거래·영업 파이프라인·리마인드를 관리하는 CRM. Next.js 16 + Supabase." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Newsreader:ital,opt,wght@0,20..72,400;0,20..72,500;0,20..72,600;1,20..72,400&display=swap" />
+<style>
+  :root {
+    /* light — cool porcelain, deep antique gold */
+    --bg: #e7e9eb;
+    --surface: #f2f3f4;
+    --surface-2: #fafbfb;
+    --text: #191b1d;
+    --text-dim: #5a5d61;
+    --line: #d3d6d9;
+    --line-strong: #b7bbbf;
+    --gold: #8c6c30;
+    --gold-bright: #a9843c;
+    --silver: #4f5a63;
+    --shadow: 0 1px 2px rgba(20,22,24,.05), 0 14px 34px -18px rgba(20,22,24,.22);
+    --stage-1: #7f8c95;
+    --stage-2: #8f8f78;
+    --stage-3: #a98c4f;
+    --stage-4: #8c6c30;
+    --stage-5: #6a6f74;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1214;
+      --surface: #161a1d;
+      --surface-2: #1d2226;
+      --text: #e9e7e2;
+      --text-dim: #9a978e;
+      --line: #292e32;
+      --line-strong: #3b4146;
+      --gold: #c9a35b;
+      --gold-bright: #e7cd96;
+      --silver: #aab4bb;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 40px -20px rgba(0,0,0,.66);
+      --stage-1: #8b98a0;
+      --stage-2: #9a9a84;
+      --stage-3: #bd9c5e;
+      --stage-4: #c9a35b;
+      --stage-5: #6d7276;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1214;
+    --surface: #161a1d;
+    --surface-2: #1d2226;
+    --text: #e9e7e2;
+    --text-dim: #9a978e;
+    --line: #292e32;
+    --line-strong: #3b4146;
+    --gold: #c9a35b;
+    --gold-bright: #e7cd96;
+    --silver: #aab4bb;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 40px -20px rgba(0,0,0,.66);
+    --stage-1: #8b98a0;
+    --stage-2: #9a9a84;
+    --stage-3: #bd9c5e;
+    --stage-4: #c9a35b;
+    --stage-5: #6d7276;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont,
+      "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 16px;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .page {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 8vw, 6rem) clamp(1.25rem, 5vw, 2rem) 4rem;
+  }
+
+  /* ---- masthead ---- */
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem;
+    letter-spacing: .22em;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+  .wordmark {
+    font-family: "Newsreader", Georgia, "Times New Roman", serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-size: clamp(2.4rem, 8vw, 3.6rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: .5rem 0 0;
+  }
+  .rule-gold {
+    height: 2px;
+    width: 3.5rem;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    margin: 1.4rem 0 1.6rem;
+  }
+  .lead {
+    font-size: 1.12rem;
+    color: var(--text-dim);
+    max-width: 34ch;
+  }
+  .lead strong { color: var(--text); font-weight: 600; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
+  .btn {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .82rem;
+    letter-spacing: .04em;
+    text-decoration: none;
+    padding: .6rem 1.05rem;
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+    background: var(--surface-2);
+    transition: border-color .18s ease, color .18s ease, transform .08s ease;
+  }
+  .btn:hover { border-color: var(--gold); color: var(--gold); }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* ---- sections ---- */
+  section { margin-top: clamp(3.5rem, 9vw, 5.5rem); }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    padding-bottom: .6rem;
+    border-bottom: 3px double var(--line-strong);
+    margin-bottom: 1.8rem;
+  }
+  .sec-head span:last-child {
+    margin-left: auto;
+    color: var(--text-dim);
+    letter-spacing: .12em;
+  }
+
+  /* ---- feature ledger ---- */
+  dl.ledger { display: grid; gap: 0; }
+  dl.ledger > div {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 1.25rem;
+    padding: 1.05rem 0;
+    border-top: 1px solid var(--line);
+  }
+  dl.ledger > div:first-child { border-top: 0; }
+  dl.ledger dt {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 1.18rem;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  dl.ledger dd { color: var(--text-dim); font-size: .96rem; }
+  dl.ledger dd code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .82em;
+    color: var(--text);
+    background: var(--surface);
+    padding: .05em .35em;
+    border: 1px solid var(--line);
+  }
+  @media (max-width: 34rem) {
+    dl.ledger > div { grid-template-columns: 1fr; gap: .3rem; }
+  }
+
+  /* ---- pipeline preview (bleeds wider than the text column) ---- */
+  .wide {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-left: clamp(1.25rem, 5vw, 2rem);
+    padding-right: clamp(1.25rem, 5vw, 2rem);
+  }
+  .board-note { color: var(--text-dim); font-size: .92rem; margin-bottom: 1.3rem; max-width: 40ch; }
+  .board {
+    display: flex;
+    gap: .8rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    scrollbar-width: thin;
+  }
+  .col {
+    flex: 0 0 12rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: .8rem;
+  }
+  .col-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem;
+    letter-spacing: .04em;
+    margin-bottom: .8rem;
+  }
+  .col-head .n { margin-left: auto; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .pip { width: 7px; height: 7px; border-radius: 999px; flex: none; }
+  .card {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: .55rem .6rem;
+    margin-bottom: .5rem;
+    box-shadow: var(--shadow);
+  }
+  .card:last-child { margin-bottom: 0; }
+  .card .nm { font-weight: 600; font-size: .86rem; }
+  .card .meta {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem;
+    color: var(--text-dim);
+    margin-top: .15rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .card--ghost {
+    background: transparent;
+    border-style: dashed;
+    box-shadow: none;
+    color: var(--text-dim);
+    font-size: .78rem;
+    text-align: center;
+    padding: .8rem;
+  }
+
+  /* ---- build notes ---- */
+  ul.notes { list-style: none; display: grid; gap: 1rem; }
+  ul.notes li {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 1.25rem;
+    font-size: .96rem;
+    color: var(--text-dim);
+  }
+  ul.notes b {
+    color: var(--text);
+    font-weight: 500;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 1.05rem;
+  }
+  ul.notes code, .stack code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .82em;
+    color: var(--text);
+  }
+  @media (max-width: 34rem) {
+    ul.notes li { grid-template-columns: 1fr; gap: .2rem; }
+  }
+
+  .stack {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .86rem;
+    line-height: 2.1;
+    color: var(--text-dim);
+  }
+  .stack code { color: var(--gold); }
+
+  footer {
+    margin-top: clamp(4rem, 10vw, 6rem);
+    padding-top: 1.6rem;
+    border-top: 3px double var(--line-strong);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .76rem;
+    line-height: 1.9;
+    letter-spacing: .03em;
+    color: var(--text-dim);
+  }
+  footer a { color: var(--gold); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ---- entrance ---- */
+  @media (prefers-reduced-motion: no-preference) {
+    .rise { opacity: 0; transform: translateY(10px); animation: rise .7s cubic-bezier(.2,.7,.2,1) forwards; }
+    .rise:nth-child(1) { animation-delay: .04s; }
+    .rise:nth-child(2) { animation-delay: .12s; }
+    .rise:nth-child(3) { animation-delay: .2s; }
+    .rise:nth-child(4) { animation-delay: .28s; }
+    .rise:nth-child(5) { animation-delay: .36s; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <p class="eyebrow rise">금은방 고객관리 시스템</p>
+    <h1 class="wordmark rise">고객관리 CRM</h1>
+    <div class="rule-gold rise"></div>
+    <p class="lead rise">
+      귀금속 매장의 <strong>고객·거래·영업 단계·이벤트 리마인드</strong>를
+      한곳에서. 직원이 로그인해 자기 고객만 다루고, 금액·중량·순도는
+      오차 없이 기록됩니다.
+    </p>
+    <div class="actions rise">
+      <a class="btn btn--primary" href="https://github.com/neoguribot/crm">GitHub 저장소 →</a>
+      <a class="btn" href="#pipeline">파이프라인 보기</a>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span>기능</span><span>Features</span></div>
+    <dl class="ledger">
+      <div>
+        <dt>고객 관리</dt>
+        <dd>등록·조회·수정·삭제. 유입경로, 구매목적(복수 선택), 첫 방문일과 메모까지 한 장에.</dd>
+      </div>
+      <div>
+        <dt>거래 기록</dt>
+        <dd>고객별 판매·매입 이력. 품목·중량·순도·금액을 정밀 수치로 남깁니다.</dd>
+      </div>
+      <div>
+        <dt>세그먼트 검색</dt>
+        <dd>이름·전화 검색에 구매목적·유입경로·미방문 기간(<code>30·90·180·365일</code>) 필터를 겹쳐 봅니다.</dd>
+      </div>
+      <div>
+        <dt>대시보드</dt>
+        <dd>전체 고객 수, 이달 판매·매입 금액, 90일 미방문, 구매목적 분포, 최근 거래.</dd>
+      </div>
+      <div>
+        <dt>리마인드</dt>
+        <dd>다음 이벤트일을 기준으로 <code>기한 지남 · 7일 이내 · 30일 이내</code>로 자동 분류.</dd>
+      </div>
+      <div>
+        <dt>영업 파이프라인</dt>
+        <dd>5단계 칸반 보드. 카드를 끌어 옮기거나 이전·다음 버튼으로 단계를 넘깁니다.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="pipeline">
+    <div class="sec-head"><span>화면</span><span>Pipeline</span></div>
+    <p class="board-note">
+      신규 문의부터 사후 관리까지, 고객이 지금 어느 단계에 있는지 한눈에.
+      아래는 예시 화면입니다.
+    </p>
+    <div class="wide">
+      <div class="board">
+        <div class="col">
+          <div class="col-head"><span class="pip" style="background:var(--stage-1)"></span>신규 문의<span class="n">2</span></div>
+          <div class="card"><div class="nm">고객 A</div><div class="meta">유입 · 당근</div></div>
+          <div class="card"><div class="nm">고객 B</div><div class="meta">유입 · 지인 소개</div></div>
+        </div>
+        <div class="col">
+          <div class="col-head"><span class="pip" style="background:var(--stage-2)"></span>상담 중<span class="n">1</span></div>
+          <div class="card"><div class="nm">고객 C</div><div class="meta">예물 · 14K</div></div>
+        </div>
+        <div class="col">
+          <div class="col-head"><span class="pip" style="background:var(--stage-3)"></span>견적 발송<span class="n">1</span></div>
+          <div class="card"><div class="nm">고객 D</div><div class="meta">이벤트 · 09. 03.</div></div>
+        </div>
+        <div class="col">
+          <div class="col-head"><span class="pip" style="background:var(--stage-4)"></span>구매 확정<span class="n">1</span></div>
+          <div class="card"><div class="nm">고객 E</div><div class="meta">골드바 · 3.75g</div></div>
+        </div>
+        <div class="col">
+          <div class="col-head"><span class="pip" style="background:var(--stage-5)"></span>사후 관리<span class="n">0</span></div>
+          <div class="card card--ghost">고객 없음</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span>만든 방식</span><span>How it's built</span></div>
+    <ul class="notes">
+      <li><b>정밀 수치</b><span>금액·중량·순도는 PostgreSQL <code>numeric</code>에 저장하고 앱에서는 문자열로 다뤄, 부동소수점 오차를 배제합니다. (<code>24K · 99.99% · 3.750g</code>)</span></li>
+      <li><b>시간대 고정</b><span>모든 날짜·시각 기준은 <code>Asia/Seoul</code>. 순수 날짜는 <code>date</code>, 타임스탬프는 UTC로 저장합니다.</span></li>
+      <li><b>행 수준 보안</b><span>모든 테이블에 Row Level Security. 로그인한 직원은 자기 고객·거래만 조회합니다.</span></li>
+      <li><b>서버 우선</b><span>기본은 Server Component. 데이터 변경은 Server Action, 인증 콜백은 Route Handler로.</span></li>
+      <li><b>계산은 조회 시</b><span>최근 방문일·리마인드 상태는 저장하지 않고 조회 시점에 계산합니다.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="sec-head"><span>스택</span><span>Stack</span></div>
+    <p class="stack">
+      <code>Next.js 16</code> App Router · <code>TypeScript</code><br />
+      <code>Supabase</code> PostgreSQL + Auth · <code>zod</code> 검증<br />
+      <code>Tailwind CSS v4</code> · <code>shadcn/ui</code> · <code>Vitest</code><br />
+      <code>Vercel</code> 배포 · npm
+    </p>
+  </section>
+
+  <footer>
+    소스 · <a href="https://github.com/neoguribot/crm">github.com/neoguribot/crm</a><br />
+    이전 Spring Boot 구현은 <code>archive/spring-boot-mvp</code> 브랜치에 보존.<br />
+    이 페이지는 정적 소개 페이지이며 CRM 앱 자체는 포함하지 않습니다.
+  </footer>
+
+</div>
+</body>
+</html>
