@@ -64,6 +64,8 @@
    정의·정규화는 `lib/marketing/segment-defs.ts`(순수), 조회는 `segments.ts`.
 10. 사용자 설정(`/settings`) — 프로필 이름 수정, 비밀번호 변경(현재 비밀번호
     재인증 후 Supabase Auth `updateUser`). 월 매출 목표는 홈 대시보드에 유지.
+    진입은 네비 탭이 아니라 우상단 계정 메뉴(이름 표시, 호버 시 설정·로그아웃).
+    이름은 `RootLayout` 이 `getCurrentAppUser()` 로 읽어 `AppNav` 에 넘긴다.
 
 ### 아직 없는 기능 (다음 단계)
 - 종합분석 PDF 내보내기, 거래 내역 Excel 내보내기 컬럼 추가 검토
