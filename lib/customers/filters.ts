@@ -1,4 +1,6 @@
 import { isValidIsoDate } from "@/lib/date";
+import { customerMatchesQuery } from "@/lib/customers/match";
+import { visitedWithin } from "@/lib/customers/recent-visit";
 import {
   FREQUENCY_LABELS,
   INFLOW_CHANNELS,
@@ -116,6 +118,70 @@ export function buildCustomerSearchParams(
   if (filters.visitTo) params.set("visitTo", filters.visitTo);
   if (filters.hasPriceTarget) params.set("hasPriceTarget", "1");
   return params;
+}
+
+/** 필터 매칭에 필요한 고객 최소 필드. */
+export type FilterableCustomer = {
+  name: string;
+  phone: string;
+  inflow_channels: InflowChannel[];
+  purchase_purposes: PurchasePurpose[];
+  frequency_label: FrequencyLabel;
+  revenue_label: RevenueLabel;
+};
+
+/**
+ * 한 고객이 필터 조건을 모두 통과하는지. 목록 조회와 Excel 내보내기가 공유한다.
+ * `visitDates` 는 등록일·첫거래일·거래일 모음, `hasPriceTarget` 는 매수 희망가 존재 여부.
+ */
+export function matchesCustomerFilters(
+  customer: FilterableCustomer,
+  visitDates: readonly string[],
+  hasPriceTarget: boolean,
+  filters: CustomerFilters,
+): boolean {
+  if (filters.hasPriceTarget && !hasPriceTarget) return false;
+
+  if (!customerMatchesQuery(customer.name, customer.phone, filters.q)) {
+    return false;
+  }
+
+  if (
+    filters.channels.length > 0 &&
+    !customer.inflow_channels.some((ch) => filters.channels.includes(ch))
+  ) {
+    return false;
+  }
+
+  if (
+    filters.purposes.length > 0 &&
+    !customer.purchase_purposes.some((p) => filters.purposes.includes(p))
+  ) {
+    return false;
+  }
+
+  if (
+    filters.frequencyLabels.length > 0 &&
+    !filters.frequencyLabels.includes(customer.frequency_label)
+  ) {
+    return false;
+  }
+
+  if (
+    filters.revenueLabels.length > 0 &&
+    !filters.revenueLabels.includes(customer.revenue_label)
+  ) {
+    return false;
+  }
+
+  if (
+    (filters.visitFrom || filters.visitTo) &&
+    !visitedWithin(visitDates, filters.visitFrom, filters.visitTo)
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 export function hasActiveFilters(filters: CustomerFilters): boolean {

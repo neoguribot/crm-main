@@ -21,4 +21,5 @@ export const NAV_ITEMS = [
   { href: "/prices", label: "시세관리" },
   { href: "/calendar", label: "캘린더" },
   { href: "/analytics", label: "종합분석" },
+  { href: "/marketing", label: "마케팅" },
 ] as const;

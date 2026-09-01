@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { CalendarDateField } from "@/components/ui/calendar-date-field";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,31 @@ export function CustomerFilterBar({ filters }: { filters: CustomerFilters }) {
   const visitFromId = useId();
   const visitToId = useId();
 
+  // 필터 입력 리셋 규칙:
+  // - "필터 초기화"(cleared): 검색어는 두고 아래 필터 입력만 즉시 비운다.
+  // - "전체 초기화" 등 내비게이션으로 URL 필터가 바뀌면(filtersSig 변화)
+  //   해당 입력들을 새 값(=빈 값)으로 remount 한다. 검색어 입력은 filters.q 로 remount.
+  const filtersSig = [
+    ...filters.purposes,
+    "|",
+    ...filters.channels,
+    "|",
+    ...filters.frequencyLabels,
+    "|",
+    ...filters.revenueLabels,
+    "|",
+    filters.visitFrom ?? "",
+    filters.visitTo ?? "",
+    filters.hasPriceTarget ? "1" : "",
+  ].join(",");
+  const [cleared, setCleared] = useState(false);
+  // URL(필터 파라미터)이 실제로 바뀌면 override 해제 — 렌더 중 상태 보정(React 권장).
+  const [prevSig, setPrevSig] = useState(filtersSig);
+  if (prevSig !== filtersSig) {
+    setPrevSig(filtersSig);
+    setCleared(false);
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -99,6 +124,7 @@ export function CustomerFilterBar({ filters }: { filters: CustomerFilters }) {
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={qId}>이름(정확히) 또는 연락처 검색</Label>
         <Input
+          key={filters.q}
           id={qId}
           name="q"
           defaultValue={filters.q}
@@ -107,82 +133,99 @@ export function CustomerFilterBar({ filters }: { filters: CustomerFilters }) {
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <CheckboxFilterGroup
-          legend="방문 목적"
-          name="purpose"
-          options={PURCHASE_PURPOSES}
-          labels={PURCHASE_PURPOSE_LABELS}
-          defaultValues={filters.purposes}
-        />
-        <CheckboxFilterGroup
-          legend="유입 경로"
-          name="channel"
-          options={INFLOW_CHANNELS}
-          labels={INFLOW_CHANNEL_LABELS}
-          defaultValues={filters.channels}
-        />
-        <CheckboxFilterGroup
-          legend="빈도 라벨"
-          name="frequencyLabel"
-          options={FREQUENCY_LABELS}
-          labels={FREQUENCY_LABEL_LABELS}
-          defaultValues={filters.frequencyLabels}
-        />
-        <CheckboxFilterGroup
-          legend="매출 라벨"
-          name="revenueLabel"
-          options={REVENUE_LABELS}
-          labels={REVENUE_LABEL_LABELS}
-          defaultValues={filters.revenueLabels}
-        />
-      </div>
-
-      <fieldset className="flex flex-col gap-1.5">
-        <legend className="mb-1.5 text-sm font-medium">방문일 (기간)</legend>
+      <div key={`${filtersSig}|${cleared}`} className="flex flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={visitFromId} className="text-xs text-muted-foreground">
-              시작
-            </Label>
-            <CalendarDateField
-              id={visitFromId}
-              name="visitFrom"
-              defaultValue={filters.visitFrom ?? ""}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={visitToId} className="text-xs text-muted-foreground">
-              종료
-            </Label>
-            <CalendarDateField
-              id={visitToId}
-              name="visitTo"
-              defaultValue={filters.visitTo ?? ""}
-            />
-          </div>
+          <CheckboxFilterGroup
+            legend="방문 목적"
+            name="purpose"
+            options={PURCHASE_PURPOSES}
+            labels={PURCHASE_PURPOSE_LABELS}
+            defaultValues={cleared ? [] : filters.purposes}
+          />
+          <CheckboxFilterGroup
+            legend="유입 경로"
+            name="channel"
+            options={INFLOW_CHANNELS}
+            labels={INFLOW_CHANNEL_LABELS}
+            defaultValues={cleared ? [] : filters.channels}
+          />
+          <CheckboxFilterGroup
+            legend="빈도 라벨"
+            name="frequencyLabel"
+            options={FREQUENCY_LABELS}
+            labels={FREQUENCY_LABEL_LABELS}
+            defaultValues={cleared ? [] : filters.frequencyLabels}
+          />
+          <CheckboxFilterGroup
+            legend="매출 라벨"
+            name="revenueLabel"
+            options={REVENUE_LABELS}
+            labels={REVENUE_LABEL_LABELS}
+            defaultValues={cleared ? [] : filters.revenueLabels}
+          />
         </div>
-        <p className="text-xs text-muted-foreground">
-          고객 등록일 또는 거래일이 이 기간 안에 있는 고객을 찾습니다.
-        </p>
-      </fieldset>
 
-      <label className="flex w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-        <Checkbox
-          name="hasPriceTarget"
-          value="1"
-          defaultChecked={filters.hasPriceTarget}
-        />
-        목표가격(매수 희망가)이 설정된 고객만 보기
-      </label>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-1.5 text-sm font-medium">방문일 (기간)</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label
+                htmlFor={visitFromId}
+                className="text-xs text-muted-foreground"
+              >
+                시작
+              </Label>
+              <CalendarDateField
+                id={visitFromId}
+                name="visitFrom"
+                defaultValue={cleared ? "" : (filters.visitFrom ?? "")}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label
+                htmlFor={visitToId}
+                className="text-xs text-muted-foreground"
+              >
+                종료
+              </Label>
+              <CalendarDateField
+                id={visitToId}
+                name="visitTo"
+                defaultValue={cleared ? "" : (filters.visitTo ?? "")}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            고객 등록일 또는 거래일이 이 기간 안에 있는 고객을 찾습니다.
+          </p>
+        </fieldset>
+
+        <label className="flex w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+          <Checkbox
+            name="hasPriceTarget"
+            value="1"
+            defaultChecked={cleared ? false : filters.hasPriceTarget}
+          />
+          목표가격(매수 희망가)이 설정된 고객만 보기
+        </label>
+      </div>
 
       <div className="flex justify-end gap-2">
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push("/customers", { scroll: false })}
+          onClick={() => {
+            // 필터(체크박스·기간·목표가)만 지우고 검색어는 유지한다.
+            setCleared(true);
+            const params = new URLSearchParams();
+            if (filters.q) params.set("q", filters.q);
+            const qs = params.toString();
+            router.push(qs ? `/customers?${qs}` : "/customers", {
+              scroll: false,
+            });
+          }}
         >
-          전체 초기화
+          필터 초기화
         </Button>
         <Button type="submit">검색</Button>
       </div>

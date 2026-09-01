@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatKoreanDate, isValidIsoDate } from "@/lib/date";
+import { formatKoreanDate } from "@/lib/date";
 import { formatWon, trimTrailingZeros } from "@/lib/number";
 import {
   ITEM_TYPE_LABELS,
@@ -22,6 +22,10 @@ import {
 } from "@/lib/labels";
 import { TRADE_STATUSES, TRADE_TYPES } from "@/lib/types/database";
 import { searchTradeRecords } from "@/lib/trades/queries";
+import {
+  buildTradeSearchParams,
+  parseTradeSearchParams,
+} from "@/lib/trades/search-params";
 import { requireUser } from "@/lib/supabase/require-user";
 
 export const metadata: Metadata = {
@@ -43,15 +47,15 @@ export default async function TransactionsPage({
   await requireUser();
 
   const sp = await searchParams;
-  const q = typeof sp.q === "string" ? sp.q : "";
-  const tradeType = TRADE_TYPES.find((t) => t === sp.trade_type);
-  const status = TRADE_STATUSES.find((s) => s === sp.status);
-  const dateFromRaw = typeof sp.date_from === "string" ? sp.date_from : "";
-  const dateToRaw = typeof sp.date_to === "string" ? sp.date_to : "";
-  const dateFrom = isValidIsoDate(dateFromRaw) ? dateFromRaw : "";
-  const dateTo = isValidIsoDate(dateToRaw) ? dateToRaw : "";
+  const filters = parseTradeSearchParams(sp);
+  const { q, tradeType, status, dateFrom, dateTo } = filters;
 
-  const result = await searchTradeRecords({ q, tradeType, status, dateFrom, dateTo });
+  const result = await searchTradeRecords(filters);
+
+  const exportQuery = buildTradeSearchParams(filters).toString();
+  const exportHref = exportQuery
+    ? `/transactions/export?${exportQuery}`
+    : "/transactions/export";
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
@@ -60,7 +64,14 @@ export default async function TransactionsPage({
           <h1 className="text-xl font-semibold">거래 관리</h1>
           <p className="text-sm text-muted-foreground">전체 거래 검색·조회</p>
         </div>
-        <Button render={<Link href="/transactions/new" />}>신규 거래 등록</Button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<a href={exportHref}>Excel 내보내기</a>}
+          />
+          <Button render={<Link href="/transactions/new" />}>신규 거래 등록</Button>
+        </div>
       </div>
 
       <form className="flex flex-wrap items-end gap-3" method="get">

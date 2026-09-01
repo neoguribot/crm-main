@@ -1,7 +1,7 @@
 # Supabase 설정
 
 이 디렉터리는 데이터베이스 스키마(마이그레이션 SQL)와 적용 방법을 담는다.
-`0001` ~ `0026` 을 번호 순서대로 적용하면 현재 앱과 일치하는 스키마가 된다.
+`0001` ~ `0030` 을 번호 순서대로 적용하면 현재 앱과 일치하는 스키마가 된다.
 
 ## 1. 환경변수
 
@@ -61,6 +61,14 @@ Project Settings > API 에서 확인한다.
      누적 거래 수 상위 고객 추가(`customer_analytics()` 재작성)
    - `0026_customer_analytics_referrers.sql` — 종합분석 "상위 고객"에 최다 추천 고객
      (`top_referrers`, 추천인으로 지정된 횟수 순) 추가(`customer_analytics()` 재작성)
+   - `0027_message_templates.sql` — 마케팅: 고객 연락 메시지 템플릿(`message_templates`,
+     채널 ALIMTALK/SMS/MANUAL, 변수 토큰 본문, 알림톡 템플릿 코드)
+   - `0028_message_log.sql` — 마케팅: 메시지 발송 이력(`message_log`, 상태
+     PENDING/SENT/FAILED/MANUAL, 치환 완료 문구 저장)
+   - `0029_marketing_settings.sql` — `users` 에 발송 설정 컬럼 추가
+     (`store_name`, `sender_phone`, `kakao_pf_id`). 발송 대행사 API 키는 환경변수
+   - `0030_marketing_segments.sql` — 프로모션 세그먼트 집계 RPC(`marketing_segments()`):
+     휴면·신규 미거래·생일 임박·목표가 도달·우수/VIP 케어·추천 유도
 3. 각 스크립트는 멱등이라 여러 번 실행해도 안전하다.
 4. 스키마 변경은 기존 파일을 고치지 말고 `0027_*.sql` 처럼 새 파일로 추가한다.
 
@@ -166,6 +174,9 @@ supabase gen types typescript --linked > lib/types/database.generated.ts
 
 ```sql
 -- 정책·트리거는 테이블과 함께 삭제된다. FK 때문에 참조하는 테이블부터 지운다.
+drop table if exists public.message_log;
+drop table if exists public.message_templates;
+drop function if exists public.marketing_segments();
 drop table if exists public.customer_events;
 drop table if exists public.notifications;
 drop table if exists public.gold_prices;

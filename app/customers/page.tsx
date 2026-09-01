@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatKoreanDate } from "@/lib/date";
 import { searchCustomers } from "@/lib/customers/queries";
 import {
+  buildCustomerSearchParams,
   hasActiveFilters,
   parseCustomerFilters,
 } from "@/lib/customers/filters";
@@ -41,11 +42,28 @@ export default async function CustomersPage({
   const active = hasActiveFilters(filters);
   const result = await searchCustomers(filters);
 
+  const exportQuery = buildCustomerSearchParams(filters).toString();
+  const exportHref = exportQuery
+    ? `/customers/export?${exportQuery}`
+    : "/customers/export";
+
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">고객 목록</h1>
-        <Button render={<Link href="/customers/new" />}>신규 고객 등록</Button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<a href={exportHref}>Excel 내보내기</a>}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/customers/import">Excel 불러오기</Link>}
+          />
+          <Button render={<Link href="/customers/new" />}>신규 고객 등록</Button>
+        </div>
       </div>
 
       <CustomerFilterBar filters={filters} />
@@ -90,9 +108,23 @@ export default async function CustomersPage({
             <p className="text-sm text-muted-foreground">
               총 {result.data.length}명
             </p>
-            <CopyContactsButton
-              customers={result.data.map((c) => ({ name: c.name, phone: c.phone }))}
-            />
+            <div className="flex items-center gap-1.5">
+              {active ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<Link href="/customers" scroll={false} />}
+                >
+                  전체 초기화
+                </Button>
+              ) : null}
+              <CopyContactsButton
+                customers={result.data.map((c) => ({
+                  name: c.name,
+                  phone: c.phone,
+                }))}
+              />
+            </div>
           </div>
           <ul className="flex flex-col gap-2">
             {result.data.map((customer) => (
