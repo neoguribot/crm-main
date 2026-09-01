@@ -215,14 +215,9 @@ export function CustomerFilterBar({ filters }: { filters: CustomerFilters }) {
           type="button"
           variant="outline"
           onClick={() => {
-            // 필터(체크박스·기간·목표가)만 지우고 검색어는 유지한다.
+            // 필터 입력(체크박스·기간·목표가)만 비운다. 검색어와 현재 목록·
+            // 총인원은 그대로 두고, 적용은 사용자가 "검색"을 눌렀을 때만 한다.
             setCleared(true);
-            const params = new URLSearchParams();
-            if (filters.q) params.set("q", filters.q);
-            const qs = params.toString();
-            router.push(qs ? `/customers?${qs}` : "/customers", {
-              scroll: false,
-            });
           }}
         >
           필터 초기화
