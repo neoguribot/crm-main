@@ -5,6 +5,7 @@ import { AppNav } from "@/components/app-nav";
 import { NotificationPopup } from "@/components/notification-popup";
 import { ScrollRemote } from "@/components/scroll-remote";
 import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
+import { getCurrentAppUser } from "@/lib/users/queries";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,10 @@ export const metadata: Metadata = {
   applicationName: APP_NAME,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const appUserResult = await getCurrentAppUser();
+  const userName = appUserResult.ok ? (appUserResult.data?.name ?? null) : null;
+
   return (
     <html
       lang="ko"
@@ -40,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               "try{var t=localStorage.getItem('crm:theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);if(d){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}}catch(e){}try{var s=localStorage.getItem('crm:font-scale');var n=s?parseFloat(s):1.15;if(!(n>=0.8&&n<=1.6))n=1.15;document.documentElement.style.fontSize=Math.round(n*100)+'%';}catch(e){}",
           }}
         />
-        <AppNav />
+        <AppNav userName={userName} />
         {children}
         <ScrollRemote />
         <NotificationPopup />
