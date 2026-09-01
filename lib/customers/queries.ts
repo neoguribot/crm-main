@@ -3,9 +3,13 @@ import "server-only";
 import type { Customer } from "@/lib/types/database";
 import { codeToGender } from "@/lib/types/codes";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { CustomerFilters } from "@/lib/customers/filters";
-import { customerMatchesQuery } from "@/lib/customers/match";
-import { visitedWithin } from "@/lib/customers/recent-visit";
+import {
+  matchesCustomerFilters,
+  type CustomerFilters,
+} from "@/lib/customers/filters";
+import { resolveLastVisitDate } from "@/lib/customers/recent-visit";
+import { sumDecimalStrings } from "@/lib/number";
+import type { CustomerExportRow } from "@/lib/customers/excel-columns";
 
 const CUSTOMER_FIELDS =
   "id, name, phone, email, birth_date, gender, address, inflow_channels, inflow_channel_detail, purchase_purposes, purchase_purpose_detail, frequency_label, revenue_label, referred_by_customer_id, registered_on, first_trade_date, last_contact_date, memo, created_at, updated_at";
@@ -139,52 +143,83 @@ export async function searchCustomers(
   });
 
   const filtered = mapped
-    .filter(({ item: c, visitDates, hasPriceTarget }) => {
-      if (filters.hasPriceTarget && !hasPriceTarget) return false;
-
-      // 이름은 정확히 일치, 연락처는 부분 일치.
-      if (!customerMatchesQuery(c.name, c.phone, filters.q)) return false;
-
-      if (
-        filters.channels.length > 0 &&
-        !c.inflow_channels.some((ch) => filters.channels.includes(ch))
-      ) {
-        return false;
-      }
-
-      if (
-        filters.purposes.length > 0 &&
-        !c.purchase_purposes.some((p) => filters.purposes.includes(p))
-      ) {
-        return false;
-      }
-
-      if (
-        filters.frequencyLabels.length > 0 &&
-        !filters.frequencyLabels.includes(c.frequency_label)
-      ) {
-        return false;
-      }
-
-      if (
-        filters.revenueLabels.length > 0 &&
-        !filters.revenueLabels.includes(c.revenue_label)
-      ) {
-        return false;
-      }
-
-      if (
-        (filters.visitFrom || filters.visitTo) &&
-        !visitedWithin(visitDates, filters.visitFrom, filters.visitTo)
-      ) {
-        return false;
-      }
-
-      return true;
-    })
+    .filter(({ item, visitDates, hasPriceTarget }) =>
+      matchesCustomerFilters(item, visitDates, hasPriceTarget, filters),
+    )
     .map(({ item }) => item);
 
   return { ok: true, data: filtered };
+}
+
+const EXPORT_COLUMNS = `${CUSTOMER_FIELDS}, trade_records(trade_date, amount::text), price_targets(id)`;
+
+type RawExportRow = RawRow & {
+  trade_records: { trade_date: string; amount: string }[] | null;
+  price_targets: { id: string }[] | null;
+};
+
+/**
+ * 현재 필터가 적용된 고객 목록을 Excel 내보내기용 전체 필드 + 파생값으로 반환한다.
+ * 필터 규칙은 `searchCustomers` 와 동일(`matchesCustomerFilters`).
+ */
+export async function exportCustomers(
+  filters: CustomerFilters,
+): Promise<QueryResult<CustomerExportRow[]>> {
+  const supabase = await createServerSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select(EXPORT_COLUMNS)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[customers] 내보내기 조회 실패:", error.message);
+    if (error.code === "42703") return { ok: false, error: MIGRATION_HINT };
+    return {
+      ok: false,
+      error: "고객 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    };
+  }
+
+  const rows = (data ?? []) as unknown as RawExportRow[];
+  const nameById = new Map(rows.map((r) => [r.id, r.name]));
+
+  const result: CustomerExportRow[] = [];
+  for (const row of rows) {
+    const trades = row.trade_records ?? [];
+    const tradeDates = trades.map((t) => t.trade_date);
+    const visitDates = [
+      row.registered_on,
+      row.first_trade_date,
+      ...tradeDates,
+    ].filter((d): d is string => Boolean(d));
+    const hasPriceTarget = (row.price_targets ?? []).length > 0;
+
+    const customer = mapGenderRow(row) as unknown as Customer;
+    if (
+      !matchesCustomerFilters(customer, visitDates, hasPriceTarget, filters)
+    ) {
+      continue;
+    }
+
+    result.push({
+      customer,
+      referrerName: row.referred_by_customer_id
+        ? (nameById.get(row.referred_by_customer_id) ?? null)
+        : null,
+      lastVisitDate: resolveLastVisitDate(row.registered_on, [
+        row.first_trade_date,
+        ...tradeDates,
+      ]),
+      tradeCount: trades.length,
+      totalAmount: sumDecimalStrings(
+        trades.map((t) => t.amount ?? "0"),
+        0,
+      ),
+    });
+  }
+
+  return { ok: true, data: result };
 }
 
 export type CustomerPickerItem = { id: string; name: string; phone: string };

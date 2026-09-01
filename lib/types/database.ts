@@ -180,9 +180,68 @@ export interface AppUser {
   name: string | null;
   registered_on: IsoDateString;
   monthly_sales_goal: NumericString | null;
+  /** 메시지 서명용 매장 이름 (0029) */
+  store_name: string | null;
+  /** SMS 폴백 발신번호 (0029) */
+  sender_phone: string | null;
+  /** 솔라피 카카오 알림톡 발신 프로필 키 (0029) */
+  kakao_pf_id: string | null;
   created_at: IsoTimestampString;
   updated_at: IsoTimestampString;
 }
+
+// ─────────────────────────────────────────────────────────────
+// 마케팅 메시지 (0027~0029)
+// ─────────────────────────────────────────────────────────────
+
+/** 메시지 채널. DB 에는 문자열 그대로 저장. */
+export const MESSAGE_CHANNELS = ["ALIMTALK", "SMS", "MANUAL"] as const;
+export type MessageChannel = (typeof MESSAGE_CHANNELS)[number];
+
+/** 메시지 발송 상태. */
+export const MESSAGE_STATUSES = ["PENDING", "SENT", "FAILED", "MANUAL"] as const;
+export type MessageStatus = (typeof MESSAGE_STATUSES)[number];
+
+export interface MessageTemplate {
+  id: string;
+  owner_id: string;
+  name: string;
+  channel: MessageChannel;
+  body: string;
+  kakao_template_id: string | null;
+  /** 연결된 일정 종류 코드(1~7) 또는 null. */
+  event_type: number | null;
+  is_active: boolean;
+  created_at: IsoTimestampString;
+  updated_at: IsoTimestampString;
+}
+
+export interface MessageLog {
+  id: string;
+  owner_id: string;
+  customer_id: string | null;
+  template_id: string | null;
+  channel: MessageChannel;
+  to_phone: string;
+  rendered_body: string;
+  status: MessageStatus;
+  provider: string | null;
+  provider_message_id: string | null;
+  error: string | null;
+  sent_at: IsoTimestampString | null;
+  created_at: IsoTimestampString;
+}
+
+export interface MessageTemplateCreateInput {
+  name: string;
+  channel: MessageChannel;
+  body: string;
+  kakao_template_id?: string | null;
+  event_type?: number | null;
+  is_active?: boolean;
+}
+
+export type MessageTemplateUpdateInput = Partial<MessageTemplateCreateInput>;
 
 /** 고객별 매수 희망 가격 (금 1돈 기준, 원). 고객당 최대 1건. */
 export interface PriceTarget {

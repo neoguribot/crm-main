@@ -9,6 +9,8 @@ import type {
   Gender,
   InflowChannel,
   ItemType,
+  MessageChannel,
+  MessageStatus,
   PurchasePurpose,
   RevenueLabel,
   TradeStatus,
@@ -108,4 +110,27 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   PRICE_ALERT: "시세 알림",
   BIRTHDAY: "생일",
   CHECK_IN: "안부",
+};
+
+export const MESSAGE_CHANNEL_LABELS: Record<MessageChannel, string> = {
+  ALIMTALK: "카카오 알림톡",
+  SMS: "문자(SMS)",
+  MANUAL: "수동 발송",
+};
+
+export const MESSAGE_STATUS_LABELS: Record<MessageStatus, string> = {
+  PENDING: "대기",
+  SENT: "발송됨",
+  FAILED: "실패",
+  MANUAL: "수동 처리",
+};
+
+export const MESSAGE_STATUS_BADGE_CLASS: Record<MessageStatus, string> = {
+  PENDING:
+    "border-transparent bg-slate-400/20 text-slate-700 dark:bg-slate-300/15 dark:text-slate-200",
+  SENT: "border-transparent bg-emerald-500/15 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
+  FAILED:
+    "border-transparent bg-red-500/15 text-red-800 dark:bg-red-500/20 dark:text-red-200",
+  MANUAL:
+    "border-transparent bg-amber-500/15 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
 };
