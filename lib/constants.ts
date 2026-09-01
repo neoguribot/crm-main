@@ -10,8 +10,8 @@ export const HOME_PATH = "/home";
 
 /**
  * 로그인 후 공통 네비게이션. 원본 요구사항 메뉴 구성(홈/고객관리/거래관리/
- * 시세관리/캘린더/종합분석/사용자설정) 기준. 사용자설정은 후순위 작업이라
- * 아직 메뉴에 없다. 리마인드(일정 관리)는 별도 메뉴 없이 홈 대시보드에
+ * 시세관리/캘린더/종합분석/사용자설정) + 마케팅. "설정"은 프로필·비밀번호
+ * 변경(`/settings`). 리마인드(일정 관리)는 별도 메뉴 없이 홈 대시보드에
  * 통합했다(0번 확정사항).
  */
 export const NAV_ITEMS = [
@@ -22,4 +22,5 @@ export const NAV_ITEMS = [
   { href: "/calendar", label: "캘린더" },
   { href: "/analytics", label: "종합분석" },
   { href: "/marketing", label: "마케팅" },
+  { href: "/settings", label: "설정" },
 ] as const;
